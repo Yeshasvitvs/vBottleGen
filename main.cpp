@@ -2,8 +2,6 @@
 #include <fstream>
 #include <algorithm>
 #include <string>
-#include <boost/foreach.hpp>
-#include <boost/tokenizer.hpp>
 #include <yarp/os/all.h>
 #include <iCub/emorph/vCodec.h>
 #include <iCub/emorph/all.h>
@@ -18,12 +16,16 @@ using namespace yarp::os;
 
 
 using namespace std;
-std::string filename_in= "/home/yeshi/AER_files/text_data/speed_muchmuchslow.txt";
+std::string filename_in= "/home/yeshi/AER_files/data/speed_fast.txt";
 std::ifstream infile;
 std::string line;
 
-std::string filename_out= "/home/yeshi/qt/vBottleGen-build/data.log";
+std::string filename_out= "/home/yeshi/AER_files/data/data.log";
 std::ofstream outfile;
+
+std::string filename_info_out= "/home/yeshi/AER_files/data/info.log";
+std::ofstream outfile_info;
+
 
 
 //Variables
@@ -38,6 +40,10 @@ std::vector<double> yarp_stamp;
 std::vector<double>::iterator yarp_stamp_it;
 std::vector<double>::reverse_iterator yarp_stamp_rev_it;
 double timeStamp=0;
+
+std::vector<double> time_stamp;
+std::vector<double>::iterator time_stamp_it;
+std::vector<double>::reverse_iterator time_stamp_rev_it;
 
 
 double time_sec = 0.0000001; //Converting to sec
@@ -57,10 +63,17 @@ int main()
 {
 
     infile.open(filename_in.c_str(),ios::in); //NOTE Check the arguments
-    outfile.open(filename_out.c_str(),ios::out|ios::app|ios::trunc);//Close and delete the contents on each run
+    outfile.open(filename_out.c_str(),ios::out|ios::trunc);//Close and delete the contents on each run
     if(outfile.is_open()){
-        std::cout << "Closing the output file..." << std::endl;
+        //std::cout << "Closing the output file..." << std::endl;
         outfile.close();
+    }
+
+    outfile_info.open(filename_info_out.c_str(),ios::out|ios::trunc);//Writing the begining of the file
+    if(outfile_info.is_open()){
+        //std::cout << "Info file opened..."<<std::endl;//Debug Code
+        outfile_info<< "Type: Bottle;" << "\n";
+        outfile_info.close();
     }
 
 
@@ -79,7 +92,7 @@ int main()
                 //Encoding
                 int word0=(32<<26)|(stamp&0x00ffffff);
                 int word1=(0<<26)|((channel&0x01)<<15)|((y&0x7f)<<8)|((x&0x7f)<<1)| (polarity&0x01);
-                std::cout << word0 << " " << word1 <<std::endl; //Debug Code
+                //std::cout << word0 << " " << word1 <<std::endl; //Debug Code
 
                 //TODO Fix the time stamps
                 /*double ts =  stamp/time_sec;
@@ -87,7 +100,7 @@ int main()
                 double td =  stamp%time_sec;
                 std::cout << "Time stamps Decimal : " << td << std::endl;//Debug Code*/
                 timeStamp = stamp*time_sec;
-                std::cout << "Time stamps in Seconds : " << timeStamp << std::endl;//Debug Code
+                //std::cout << "Time stamps in Seconds : " << timeStamp << std::endl;//Debug Code
                 if(!outfile.is_open()){//Check if the file is open already, if not open it and start writing
 
                     //std::cout << "The output file is closed..." << std::endl;
@@ -103,6 +116,9 @@ int main()
                 yarp_stamp.push_back(stamp);
                 yarp_stamp_it = yarp_stamp.begin();
                 yarp_stamp_rev_it = yarp_stamp.rbegin(); //This changes as the elements are added to the vector
+
+                //Pushing all the time stamps into a vector
+                time_stamp.push_back(timeStamp);
 
 
                 //Finding the difference between last and first timestamp
@@ -138,6 +154,17 @@ int main()
         std::cout << "Closing the output file..." << std::endl;
         outfile.close();
     }
+
+    time_stamp_it = time_stamp.begin();
+    time_stamp_rev_it = time_stamp.rbegin();
+    outfile_info.open(filename_info_out.c_str(),ios::out|ios::app);//Writing the begining of the file
+    if(outfile_info.is_open()){
+        outfile_info<< "[" << *time_stamp_it << "]" <<" /aexGrabber/vBottle:o [connected]" << "\n";
+        outfile_info<< "[" << *time_stamp_rev_it << "]" <<" /aexGrabber/vBottle:o [disconnected]" << "\n";
+        outfile_info.close();
+        time_stamp.clear();//Clearing the time stamps vector
+    }
+
     infile.close();
     return 0;
 }
